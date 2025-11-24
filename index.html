@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberScout - Network Scanner</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f36 100%);
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 40px;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 16px;
+            color: #00ff88;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            color: #000;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid #334155;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .host-item {
+            background: rgba(15, 23, 42, 0.5);
+            border-left: 3px solid #334155;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .host-item:hover {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+            transform: translateX(5px);
+        }
+
+        .host-item.active {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .host-ip {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .host-info {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .port-badge {
+            display: inline-block;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin-right: 5px;
+            margin-top: 5px;
+            font-size: 11px;
+        }
+
+        .port-badge.danger {
+            border-color: #ff3333;
+            color: #ff3333;
+            background: rgba(255, 51, 51, 0.1);
+        }
+
+        .port-badge.warning {
+            border-color: #ffaa00;
+            color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .vulnerability {
+            background: rgba(255, 51, 51, 0.05);
+            border-left: 3px solid #ff3333;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .vuln-title {
+            color: #ff3333;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .vuln-desc {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .defense {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .defense-title {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .defense-desc {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status-scanning {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-complete {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .status-error {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid #ff3333;
+            color: #ff3333;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #00ff88;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER SECTION -->
+        <header>
+            <h1>⚔️ CYBERSCOUT</h1>
+            <p class="subtitle">Network Reconnaissance & Port Scanning Platform</p>
+        </header>
+
+        <!-- STATISTICS SECTION -->
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="stat-value" id="totalHosts">0</div>
+                <div class="stat-label">Hosts Found</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalPorts">0</div>
+                <div class="stat-label">Ports Open</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="vulnCount">0</div>
+                <div class="stat-label">Vulnerabilities</div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="main-grid">
+            <!-- LEFT COLUMN: SCANNER INPUT -->
+            <div>
+                <div class="card">
+                    <div class="card-title">🔍 Network Scanner</div>
+                    
+                    <div class="input-group">
+                        <input type="text" id="targetInput" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+                        <button id="scanBtn" onclick="startScan()">SCAN</button>
+                    </div>
+
+                    <div id="statusMessage" class="status-message status-complete" style="display: none;">
+                        Ready to scan
+                    </div>
+
+                    <div id="hostsList">
+                        <p style="color: #94a3b8; text-align: center; padding: 20px;">
+                            Click SCAN button to discover hosts
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: HOST DETAILS -->
+            <div>
+                <div class="card">
+                    <div class="card-title">🖥️ Host Details</div>
+                    <div id="hostDetails">
+                        <p style="color: #94a3b8; text-align: center; padding: 20px;">
+                            Select a host to view details
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VULNERABILITIES -->
+        <div class="card">
+            <div class="card-title">⚠️ Vulnerabilities</div>
+            <div id="vulnList">
+                <p style="color: #94a3b8; text-align: center; padding: 20px;">
+                    Scan results will show vulnerabilities here
+                </p>
+            </div>
+        </div>
+
+        <!-- DEFENSES -->
+        <div class="card">
+            <div class="card-title">🛡️ Defense Recommendations</div>
+            <div id="defenseList">
+                <p style="color: #94a3b8; text-align: center; padding: 20px;">
+                    How to protect your network
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT WITH FLASK INTEGRATION -->
+    <script>
+        // Data storage
+        let scannedHosts = [];
+        let selectedHost = null;
+
+        // Vulnerability database
+        const vulnerabilities = {
+            53: {
+                port: 53,
+                service: 'DNS',
+                risk: 'LOW',
+                title: 'Domain Name System',
+                desc: 'DNS is needed for network operation but misconfiguration can enable attacks.'
+            },
+            135: {
+                port: 135,
+                service: 'RPC',
+                risk: 'HIGH',
+                title: 'Windows RPC Endpoint',
+                desc: 'RPC can be exploited for lateral movement and privilege escalation attacks.'
+            },
+            445: {
+                port: 445,
+                service: 'SMB',
+                risk: 'CRITICAL',
+                title: 'SMB File Sharing Protocol',
+                desc: 'Port 445 is one of the most exploited ports. Ransomware and worms target this.'
+            },
+            3000: {
+                port: 3000,
+                service: 'Unknown',
+                risk: 'MEDIUM',
+                title: 'Unknown Service',
+                desc: 'Unknown service detected. Requires further investigation of the application.'
+            },
+            22: {
+                port: 22,
+                service: 'SSH',
+                risk: 'MEDIUM',
+                title: 'Secure Shell',
+                desc: 'SSH is secure if properly configured. Brute force attacks are common.'
+            },
+            80: {
+                port: 80,
+                service: 'HTTP',
+                risk: 'HIGH',
+                title: 'Unencrypted Web',
+                desc: 'HTTP is unencrypted. Use HTTPS instead. Vulnerable to MITM attacks.'
+            },
+            443: {
+                port: 443,
+                service: 'HTTPS',
+                risk: 'LOW',
+                title: 'Secure Web',
+                desc: 'HTTPS with proper certificates is secure. Keep TLS updated.'
+            },
+            3306: {
+                port: 3306,
+                service: 'MySQL',
+                risk: 'CRITICAL',
+                title: 'Database Service',
+                desc: 'Database exposed to network. Should be restricted to localhost only.'
+            },
+            5432: {
+                port: 5432,
+                service: 'PostgreSQL',
+                risk: 'CRITICAL',
+                title: 'PostgreSQL Database',
+                desc: 'Database exposed to network. Should be restricted to localhost only.'
+            }
+        };
+
+        // Defense strategies
+        const defenses = [
+            {
+                title: '🔥 Firewall Configuration',
+                desc: 'Block unnecessary ports. Only allow services you actually use.'
+            },
+            {
+                title: '🔐 Network Segmentation',
+                desc: 'Separate your network into security zones (DMZ, Internal, Sensitive).'
+            },
+            {
+                title: '🛑 Disable Unnecessary Services',
+                desc: 'Stop running services you don\'t need. Every port is a potential attack vector.'
+            },
+            {
+                title: '🔄 Keep Systems Updated',
+                desc: 'Regularly patch OS and applications. Most exploits target known vulnerabilities.'
+            },
+            {
+                title: '👁️ Intrusion Detection (IDS)',
+                desc: 'Deploy monitoring to detect unauthorized scanning attempts on your network.'
+            },
+            {
+                title: '⚙️ Service Hardening',
+                desc: 'Disable unnecessary features, change defaults, run with minimal privileges.'
+            }
+        ];
+
+        // MAIN FUNCTION: Start the scan (FLASK VERSION)
+        async function startScan() {
+            const target = document.getElementById('targetInput').value;
+            const statusMsg = document.getElementById('statusMessage');
+            const scanBtn = document.getElementById('scanBtn');
+
+            if (!target.trim()) {
+                statusMsg.className = 'status-message status-error';
+                statusMsg.textContent = '❌ Please enter a target!';
+                statusMsg.style.display = 'block';
+                return;
+            }
+
+            // Disable button during scan
+            scanBtn.disabled = true;
+
+            // Show scanning status
+            statusMsg.className = 'status-message status-scanning';
+            statusMsg.innerHTML = '<span class="loading-spinner"></span>Scanning ' + target + '... (this may take 1-2 minutes)';
+            statusMsg.style.display = 'block';
+
+            try {
+                console.log('[*] Sending scan request to Flask backend...');
+                console.log('[*] Target: ' + target);
+
+                // Call Flask backend API
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ target: target })
+                });
+
+                console.log('[*] Response status: ' + response.status);
+
+                if (!response.ok) {
+                    throw new Error('Scan failed with status ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('[*] Response data:', data);
+                
+                if (data.status === 'success') {
+                    scannedHosts = data.hosts;
+                    console.log('[+] Found ' + scannedHosts.length + ' hosts');
+                    
+                    displayHosts();
+                    displayDefenses();
+                    updateStatistics();
+                    
+                    if (scannedHosts.length > 0) {
+                        selectHost(scannedHosts[0]);
+                    }
+                    
+                    statusMsg.className = 'status-message status-complete';
+                    statusMsg.textContent = '✓ Scan Complete - Found ' + scannedHosts.length + ' hosts';
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+            } catch (error) {
+                console.error('[!] Error:', error);
+                statusMsg.className = 'status-message status-error';
+                statusMsg.textContent = '❌ Error: ' + error.message;
+            } finally {
+                // Re-enable button
+                scanBtn.disabled = false;
+            }
+        }
+
+        // Display all discovered hosts
+        function displayHosts() {
+            const hostsList = document.getElementById('hostsList');
+            hostsList.innerHTML = '';
+
+            if (scannedHosts.length === 0) {
+                hostsList.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 20px;">No hosts found</p>';
+                return;
+            }
+
+            scannedHosts.forEach((host, index) => {
+                const hostEl = document.createElement('div');
+                hostEl.className = 'host-item';
+                if (index === 0) hostEl.className += ' active';
+                hostEl.onclick = function() {
+                    selectHost(host);
+                    // Update active state
+                    document.querySelectorAll('.host-item').forEach(el => {
+                        el.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                };
+
+                const portCount = host.ports ? host.ports.length : 0;
+                const portText = portCount === 0 ? 'All ports filtered' : portCount + ' port(s) open';
+
+                hostEl.innerHTML = `
+                    <div class="host-ip">${host.ip}</div>
+                    <div class="host-info">
+                        OS: ${host.os} | ${portText}
+                    </div>
+                `;
+
+                hostsList.appendChild(hostEl);
+            });
+        }
+
+        // Select a host and show details
+        function selectHost(host) {
+            selectedHost = host;
+
+            const details = document.getElementById('hostDetails');
+            let portsHTML = '';
+
+            if (host.ports && host.ports.length > 0) {
+                host.ports.forEach(p => {
+                    const vuln = vulnerabilities[p.port];
+                    let badgeClass = 'port-badge';
+                    if (vuln && vuln.risk === 'CRITICAL') badgeClass += ' danger';
+                    else if (vuln && vuln.risk === 'HIGH') badgeClass += ' warning';
+                    
+                    const version = p.version ? ` (${p.version})` : '';
+                    portsHTML += `<span class="${badgeClass}" title="${p.service}${version}">${p.port}/${p.service}</span>`;
+                });
+            }
+
+            details.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">IP Address</div>
+                    <div>${host.ip}</div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">Operating System</div>
+                    <div>${host.os}</div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">MAC Address</div>
+                    <div>${host.mac}</div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">Response Time</div>
+                    <div>${host.latency}</div>
+                </div>
+                ${host.ports && host.ports.length > 0 ? `
+                    <div>
+                        <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">Open Ports (${host.ports.length})</div>
+                        <div>${portsHTML}</div>
+                    </div>
+                ` : '<div style="color: #94a3b8; font-style: italic;">No open ports (Firewall Protected)</div>'}
+            `;
+
+            displayVulnerabilities();
+        }
+
+        // Display vulnerabilities for selected host
+        function displayVulnerabilities() {
+            const vulnList = document.getElementById('vulnList');
+            vulnList.innerHTML = '';
+
+            if (!selectedHost || !selectedHost.ports || selectedHost.ports.length === 0) {
+                vulnList.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 20px;">No vulnerabilities detected</p>';
+                return;
+            }
+
+            selectedHost.ports.forEach(port => {
+                const vuln = vulnerabilities[port.port];
+                if (vuln) {
+                    const vulnEl = document.createElement('div');
+                    vulnEl.className = 'vulnerability';
+                    vulnEl.innerHTML = `
+                        <div class="vuln-title">[${vuln.risk}] Port ${vuln.port} - ${vuln.service}</div>
+                        <div class="vuln-desc">${vuln.desc}</div>
+                    `;
+                    vulnList.appendChild(vulnEl);
+                }
+            });
+        }
+
+        // Display defense recommendations
+        function displayDefenses() {
+            const defenseList = document.getElementById('defenseList');
+            defenseList.innerHTML = '';
+
+            defenses.forEach(d => {
+                const defEl = document.createElement('div');
+                defEl.className = 'defense';
+                defEl.innerHTML = `
+                    <div class="defense-title">${d.title}</div>
+                    <div class="defense-desc">${d.desc}</div>
+                `;
+                defenseList.appendChild(defEl);
+            });
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            let totalPorts = 0;
+            let vulnCount = 0;
+
+            scannedHosts.forEach(host => {
+                if (host.ports) {
+                    totalPorts += host.ports.length;
+                    host.ports.forEach(p => {
+                        if (vulnerabilities[p.port]) vulnCount++;
+                    });
+                }
+            });
+
+            document.getElementById('totalHosts').textContent = scannedHosts.length;
+            document.getElementById('totalPorts').textContent = totalPorts;
+            document.getElementById('vulnCount').textContent = vulnCount;
+        }
+
+        // Load defenses on page load
+        window.addEventListener('load', () => {
+            displayDefenses();
+            console.log('[+] CyberScout UI loaded successfully');
+            console.log('[+] Connected to Flask backend at http://localhost:5000');
+        });
+    </script>
+</body>
+</html>

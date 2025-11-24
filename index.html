@@ -68,7 +68,7 @@
             margin-bottom: 15px;
         }
 
-        input {
+        input[type="text"], select {
             flex: 1;
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid #334155;
@@ -79,10 +79,15 @@
             font-size: 13px;
         }
 
-        input:focus {
+        input[type="text"]:focus, select:focus {
             outline: none;
             border-color: #00ff88;
             box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
         }
 
         button {
@@ -107,6 +112,16 @@
             background: #666;
             cursor: not-allowed;
             opacity: 0.5;
+        }
+
+        button.secondary {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+
+        button.secondary:hover {
+            background: rgba(0, 255, 136, 0.3);
         }
 
         .stats-grid {
@@ -135,6 +150,56 @@
             font-size: 11px;
             color: #94a3b8;
             text-transform: uppercase;
+        }
+
+        .advanced-options {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .advanced-options summary {
+            color: #00ff88;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 10px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .advanced-options summary:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .option-group {
+            margin-bottom: 12px;
+            padding-left: 10px;
+        }
+
+        .option-label {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .command-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #00ff88;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
         }
 
         .host-item {
@@ -332,10 +397,89 @@
                         <button id="scanBtn" onclick="startScan()">SCAN</button>
                     </div>
 
+                    <!-- ADVANCED OPTIONS -->
+                    <div class="advanced-options">
+                        <details>
+                            <summary>⚙️ Advanced Scan Options</summary>
+                            
+                            <div style="margin-top: 15px;">
+                                <!-- Scan Type Selector -->
+                                <div class="option-group">
+                                    <label class="option-label">Scan Type:</label>
+                                    <select id="scanType" onchange="updateCommandPreview()">
+                                        <option value="fast">🚀 Fast Scan (-F) - 100 ports, quick</option>
+                                        <option value="standard">⚡ Standard Scan (-p-) - All 65,535 ports</option>
+                                        <option value="version">📦 Version Detection (-sV) - Service versions</option>
+                                        <option value="os">🖥️ OS Detection (-O) - Operating system</option>
+                                        <option value="aggressive">⚔️ Aggressive (-A) - Full scan</option>
+                                        <option value="custom">🔧 Custom Command</option>
+                                    </select>
+                                </div>
+
+                                <!-- Custom Command Input (Hidden by default) -->
+                                <div class="option-group hidden" id="customCmdDiv">
+                                    <label class="option-label">Custom Nmap Flags:</label>
+                                    <input type="text" id="customFlags" placeholder="-sV -p 22,80,443" onchange="updateCommandPreview()">
+                                    <p style="color: #94a3b8; font-size: 11px; margin-top: 5px;">
+                                        📌 Examples: -sV (versions) | -O (OS) | -p 22,80,443 (specific ports) | -sU (UDP) | -sT (TCP)
+                                    </p>
+                                </div>
+
+                                <!-- Additional Options -->
+                                <div class="option-group">
+                                    <label style="color: #00ff88; font-weight: bold; cursor: pointer;">
+                                        <input type="checkbox" id="versionCheck" onchange="updateCommandPreview()"> 
+                                        Service Version Detection (-sV)
+                                    </label>
+                                </div>
+
+                                <div class="option-group">
+                                    <label style="color: #00ff88; font-weight: bold; cursor: pointer;">
+                                        <input type="checkbox" id="osCheck" onchange="updateCommandPreview()"> 
+                                        OS Detection (-O)
+                                    </label>
+                                </div>
+
+                                <div class="option-group">
+                                    <label style="color: #00ff88; font-weight: bold; cursor: pointer;">
+                                        <input type="checkbox" id="scriptCheck" onchange="updateCommandPreview()"> 
+                                        NSE Scripts (-sC)
+                                    </label>
+                                </div>
+
+                                <div class="option-group">
+                                    <label style="color: #00ff88; font-weight: bold; cursor: pointer;">
+                                        <input type="checkbox" id="aggressiveCheck" onchange="updateCommandPreview()"> 
+                                        Aggressive Mode (-T4)
+                                    </label>
+                                </div>
+
+                                <!-- Port Range Input -->
+                                <div class="option-group">
+                                    <label class="option-label">Port Range (optional):</label>
+                                    <input type="text" id="portRange" placeholder="22,80,443,3306,5432" onchange="updateCommandPreview()">
+                                    <p style="color: #94a3b8; font-size: 11px; margin-top: 5px;">
+                                        Leave empty for default, or enter: 22,80,443 or 1-1000
+                                    </p>
+                                </div>
+
+                                <!-- Command Preview -->
+                                <div style="margin-top: 15px;">
+                                    <label class="option-label">Preview Command:</label>
+                                    <div class="command-preview" id="commandPreview">
+                                        nmap -F 192.168.1.0/24 -oX -
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- Status Message -->
                     <div id="statusMessage" class="status-message status-complete" style="display: none;">
                         Ready to scan
                     </div>
 
+                    <!-- Hosts List -->
                     <div id="hostsList">
                         <p style="color: #94a3b8; text-align: center; padding: 20px;">
                             Click SCAN button to discover hosts
@@ -383,6 +527,7 @@
         // Data storage
         let scannedHosts = [];
         let selectedHost = null;
+        let currentNmapCommand = '';
 
         // Vulnerability database
         const vulnerabilities = {
@@ -479,11 +624,69 @@
             }
         ];
 
-        // MAIN FUNCTION: Start the scan (FLASK VERSION)
+        // Update command preview based on selections
+        function updateCommandPreview() {
+            const scanType = document.getElementById('scanType').value;
+            const target = document.getElementById('targetInput').value || '192.168.1.0/24';
+            const portRange = document.getElementById('portRange').value;
+            const versionCheck = document.getElementById('versionCheck').checked;
+            const osCheck = document.getElementById('osCheck').checked;
+            const scriptCheck = document.getElementById('scriptCheck').checked;
+            const aggressiveCheck = document.getElementById('aggressiveCheck').checked;
+            const customCmdDiv = document.getElementById('customCmdDiv');
+
+            let command = 'nmap';
+
+            if (scanType === 'custom') {
+                customCmdDiv.classList.remove('hidden');
+                const customFlags = document.getElementById('customFlags').value;
+                command += ' ' + customFlags;
+            } else {
+                customCmdDiv.classList.add('hidden');
+
+                // Add scan type flags
+                switch(scanType) {
+                    case 'fast':
+                        command += ' -F';
+                        break;
+                    case 'standard':
+                        command += ' -p-';
+                        break;
+                    case 'version':
+                        command += ' -sV';
+                        break;
+                    case 'os':
+                        command += ' -O';
+                        break;
+                    case 'aggressive':
+                        command += ' -A';
+                        break;
+                }
+
+                // Add additional options
+                if (versionCheck && scanType !== 'version') command += ' -sV';
+                if (osCheck && scanType !== 'os') command += ' -O';
+                if (scriptCheck) command += ' -sC';
+                if (aggressiveCheck) command += ' -T4';
+            }
+
+            // Add port range if specified
+            if (portRange) {
+                command += ' -p ' + portRange;
+            }
+
+            command += ' ' + target + ' -oX -';
+
+            currentNmapCommand = command;
+            document.getElementById('commandPreview').textContent = command;
+        }
+
+        // MAIN FUNCTION: Start the scan
         async function startScan() {
             const target = document.getElementById('targetInput').value;
             const statusMsg = document.getElementById('statusMessage');
             const scanBtn = document.getElementById('scanBtn');
+            const scanType = document.getElementById('scanType').value;
 
             if (!target.trim()) {
                 statusMsg.className = 'status-message status-error';
@@ -501,8 +704,10 @@
             statusMsg.style.display = 'block';
 
             try {
+                console.log('[*] Starting scan with command:', currentNmapCommand);
                 console.log('[*] Sending scan request to Flask backend...');
                 console.log('[*] Target: ' + target);
+                console.log('[*] Scan Type: ' + scanType);
 
                 // Call Flask backend API
                 const response = await fetch('/api/scan', {
@@ -510,7 +715,11 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ target: target })
+                    body: JSON.stringify({ 
+                        target: target,
+                        scanType: scanType,
+                        customCommand: currentNmapCommand
+                    })
                 });
 
                 console.log('[*] Response status: ' + response.status);
@@ -693,9 +902,10 @@
             document.getElementById('vulnCount').textContent = vulnCount;
         }
 
-        // Load defenses on page load
+        // Load defenses and update preview on page load
         window.addEventListener('load', () => {
             displayDefenses();
+            updateCommandPreview();
             console.log('[+] CyberScout UI loaded successfully');
             console.log('[+] Connected to Flask backend at http://localhost:5000');
         });

@@ -1,6 +1,6 @@
 # ============================================
-# CYBERSCOUT FLASK BACKEND
-# Real Nmap Integration for Network Scanning
+# CYBERSCOUT FLASK BACKEND - ADVANCED VERSION
+# Real Nmap Integration with Custom Commands
 # ============================================
 
 from flask import Flask, render_template, request, jsonify
@@ -8,6 +8,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import json
 import os
+import re
 
 app = Flask(__name__, template_folder='.')
 
@@ -25,28 +26,27 @@ def index():
 @app.route('/api/scan', methods=['POST'])
 def scan():
     """
-    This function runs a real Nmap scan on the target
-    Receives: { "target": "192.168.1.0/24" }
+    This function runs Nmap with custom or predefined commands
+    Receives: { "target": "192.168.1.0/24", "scanType": "fast", "customCommand": "..." }
     Returns: { "status": "success", "hosts": [...] }
     """
     try:
-        # Get target from the request
+        # Get request data
         data = request.get_json()
         target = data.get('target')
+        scan_type = data.get('scanType', 'fast')
+        custom_command = data.get('customCommand', '')
 
         if not target:
             return jsonify({'error': 'No target provided'}), 400
 
         print(f"\n[*] ================================================")
         print(f"[*] SCANNING TARGET: {target}")
+        print(f"[*] SCAN TYPE: {scan_type}")
         print(f"[*] ================================================\n")
 
-        # Build Nmap command
-        # -F: Fast scan (100 most common ports)
-        # -sV: Service version detection
-        # -O: OS detection
-        # -oX -: Output as XML to stdout
-        nmap_cmd = ['sudo', 'nmap', '-F', '-sV', '-O', target, '-oX', '-']
+        # Build Nmap command based on scan type
+        nmap_cmd = build_nmap_command(target, scan_type, custom_command)
         
         print(f"[*] Running command: {' '.join(nmap_cmd)}\n")
 
@@ -70,7 +70,8 @@ def scan():
             'status': 'success',
             'hosts': hosts_data,
             'target': target,
-            'count': len(hosts_data)
+            'count': len(hosts_data),
+            'command': ' '.join(nmap_cmd)
         })
 
     except subprocess.TimeoutExpired:
@@ -84,6 +85,89 @@ def scan():
     except Exception as e:
         print(f"[!] ERROR: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# ============================================
+# HELPER FUNCTION: Build Nmap Command
+# ============================================
+def build_nmap_command(target, scan_type, custom_command):
+    """
+    Build Nmap command based on scan type
+    Returns list of command arguments for subprocess
+    """
+    
+    # Validate target (basic CIDR/IP validation)
+    if not is_valid_target(target):
+        raise ValueError(f"Invalid target format: {target}")
+
+    # If custom command provided, use it
+    if scan_type == 'custom' and custom_command:
+        # Parse custom command and add target
+        cmd_parts = custom_command.split()
+        # Remove 'nmap' if it's at the start
+        if cmd_parts[0].lower() == 'nmap':
+            cmd_parts = cmd_parts[1:]
+        # Remove target if already in command
+        cmd_parts = [p for p in cmd_parts if p != target]
+        # Build final command
+        nmap_cmd = ['sudo', 'nmap'] + cmd_parts + [target, '-oX', '-']
+        return nmap_cmd
+
+    # Build command based on scan type
+    base_cmd = ['sudo', 'nmap']
+
+    if scan_type == 'fast':
+        # Fast scan - 100 most common ports
+        nmap_cmd = base_cmd + ['-F', target, '-oX', '-']
+    
+    elif scan_type == 'standard':
+        # Standard scan - all ports
+        nmap_cmd = base_cmd + ['-p-', target, '-oX', '-']
+    
+    elif scan_type == 'version':
+        # Service version detection
+        nmap_cmd = base_cmd + ['-sV', target, '-oX', '-']
+    
+    elif scan_type == 'os':
+        # OS detection
+        nmap_cmd = base_cmd + ['-O', target, '-oX', '-']
+    
+    elif scan_type == 'aggressive':
+        # Aggressive scan - full information
+        nmap_cmd = base_cmd + ['-A', target, '-oX', '-']
+    
+    else:
+        # Default to fast scan
+        nmap_cmd = base_cmd + ['-F', '-sV', '-O', target, '-oX', '-']
+
+    return nmap_cmd
+
+# ============================================
+# HELPER FUNCTION: Validate Target
+# ============================================
+def is_valid_target(target):
+    """
+    Validate target is proper IP/CIDR format
+    Returns True if valid, False otherwise
+    """
+    # IP regex pattern
+    ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    cidr_pattern = r'^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$'
+    
+    if re.match(ip_pattern, target) or re.match(cidr_pattern, target):
+        return True
+    
+    # Check for comma-separated IPs
+    if ',' in target:
+        parts = target.split(',')
+        return all(re.match(ip_pattern, p.strip()) for p in parts)
+    
+    # Check for IP range
+    if '-' in target:
+        parts = target.split('-')
+        if len(parts) == 2:
+            return re.match(ip_pattern, parts[0].strip()) and re.match(ip_pattern, parts[1].strip())
+    
+    return False
 
 # ============================================
 # HELPER FUNCTION: Parse Nmap XML Output
@@ -209,6 +293,7 @@ if __name__ == '__main__':
     print("\n")
     print("╔════════════════════════════════════════════════════════╗")
     print("║         🛡️  CYBERSCOUT BACKEND STARTING  🛡️           ║")
+    print("║              ADVANCED VERSION - Custom Nmap            ║")
     print("╚════════════════════════════════════════════════════════╝")
     print()
     print("📍 Access UI at: http://localhost:5000")
@@ -226,15 +311,18 @@ if __name__ == '__main__':
     print("   - Approved penetration testing engagements")
     print("   - Isolated lab/test networks")
     print()
-    print("═" * 56)
+    print("════════════════════════════════════════════════════════")
+    print()
+    print("AVAILABLE SCAN TYPES:")
+    print("  🚀 Fast Scan (-F) - 100 most common ports")
+    print("  ⚡ Standard (-p-) - All 65,535 ports")
+    print("  📦 Version Detection (-sV) - Service versions")
+    print("  🖥️  OS Detection (-O) - Operating system")
+    print("  ⚔️  Aggressive (-A) - Full scan")
+    print("  🔧 Custom - Your own Nmap command")
     print()
     
     # Start Flask server
-    # debug=True: Auto-reload on code changes
-    # host='127.0.0.1': Only localhost (secure)
-    # port=5000: Standard Flask port
-    # use_reloader=False: Prevent Nmap from running twice
-    
     app.run(
         debug=True,
         host='127.0.0.1',
